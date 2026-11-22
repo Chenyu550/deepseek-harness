@@ -1,0 +1,53 @@
+
+name: Build Intel macOS DMG
+
+on:
+  workflow_dispatch:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15-intel
+    timeout-minutes: 180
+
+    env:
+      DSH_GATE_CONCURRENCY: "2"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.28.5
+          run_install: false
+
+      - name: Check environment
+        run: |
+          uname -m
+          node -v
+          pnpm -v
+          df -h .
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build x64 DMG
+        run: |
+          pnpm run package:desktop:mac:x64:unsigned
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: DeepSeek-Harness-macOS-x64
+          path: apps/desktop/.desktop-build/targets/mac-x64/unsigned-artifacts/*.dmg
+          if-no-files-found: error
